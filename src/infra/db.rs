@@ -1,0 +1,4 @@
+
+trait Database {
+    fn up()
+}

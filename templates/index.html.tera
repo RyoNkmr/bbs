@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BBS</title>
+  </head>
+  <body>
+    <h1>ねこまちBBS</h1>
+
+    <section>
+      <h2>スレッド一覧</h2>
+      <ul>
+        {% for thread in threads %}
+        <li><a href="{{thread.url}}">{{thread.title}}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      {% for thread in top_threads %}
+      <li><a href="{{thread.url}}">{{thread.title}}</a></li>
+      {% endfor %}
+    </section>
+  </body>
+</html>
