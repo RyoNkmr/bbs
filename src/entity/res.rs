@@ -9,7 +9,7 @@ use std::net::IpAddr;
 
 pub struct Res {
     pub username: String,
-    pub id: String,
+    pub userid: String,
     pub email: String,
     pub body: String,
     pub ip: IpAddr,
@@ -20,7 +20,7 @@ impl Res {
     pub fn to_debug_response(&self) -> DebugResponse {
         DebugResponse {
             username: self.username.clone(),
-            id: self.id.clone(),
+            userid: self.userid.clone(),
             email: self.email.clone(),
             body: self.body.clone(),
             ip: self.ip.to_string(),
@@ -31,14 +31,14 @@ impl Res {
 
 pub struct ResBuilder {
     username: String,
-    id: String,
+    userid: String,
     email: String,
     body: String,
     ip: IpAddr,
     created_at: DateTime<Utc>,
 }
 
-fn generate_id(source: &str) -> String {
+fn generate_userid(source: &str) -> String {
     let mut hasher = Sha1::new();
     hasher.input_str(source);
     return encode(&hasher.result_str())[..8].to_string();
@@ -46,15 +46,15 @@ fn generate_id(source: &str) -> String {
 
 impl ResBuilder {
     pub fn new(ip: IpAddr) -> ResBuilder {
-        let id_source = Utc::today().to_string() + &ip.to_string();
+        let userid_source = Utc::today().to_string() + &ip.to_string();
 
         return ResBuilder {
             body: String::new(),
             created_at: Utc::now(),
             email: String::new(),
-            id: generate_id(&id_source),
             ip,
             username: String::new(),
+            userid: generate_userid(&userid_source),
         };
     }
 
@@ -76,7 +76,7 @@ impl ResBuilder {
     pub fn finalize(&self) -> Res {
         Res {
             username: self.username.clone(),
-            id: self.id.clone(),
+            userid: self.userid.clone(),
             email: self.email.clone(),
             body: self.body.clone(),
             ip: self.ip.clone(),
@@ -88,7 +88,7 @@ impl ResBuilder {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DebugResponse {
     pub username: String,
-    pub id: String,
+    pub userid: String,
     pub email: String,
     pub body: String,
     pub created_at: String,
