@@ -13,7 +13,10 @@ use rocket::Request;
 use rocket_contrib::json::Json;
 use std::net::SocketAddr;
 
-use bbs::entity::{DebugResponse, ResBuilder};
+use bbs::entity::{
+    DebugResponse, DebugThreadResponse, NewResBuilder, ResRepository, ThreadBuilder,
+};
+use bbs::DbConn;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -21,23 +24,56 @@ fn index() -> &'static str {
 }
 
 #[derive(FromForm)]
-struct ResRequest {
-    pub username: String,
+struct NewThreadRequest {
+    pub title: String,
+    pub user_name: String,
     pub email: String,
     pub body: String,
 }
 
-#[post("/thread/<id>", data = "<req>")]
-fn post(id: usize, req: Form<ResRequest>, addr: SocketAddr) -> Json<DebugResponse> {
-    let res = ResBuilder::new(addr.ip())
-        .username(&req.username)
+#[derive(FromForm)]
+struct NewResRequest {
+    pub user_name: String,
+    pub email: String,
+    pub body: String,
+}
+
+#[post("/thread", data = "<req>")]
+fn new_thread(
+    conn: DbConn,
+    req: Form<NewThreadRequest>,
+    addr: SocketAddr,
+) -> Json<DebugThreadResponse> {
+    let mut res_builder = NewResBuilder::new(&addr.ip());
+    res_builder
+        .user_name(&req.user_name)
+        .email(&req.email)
+        .body(&req.body);
+    Json(ThreadBuilder::new(res_builder).save(&conn))
+}
+
+#[post("/thread/<thread_id>", data = "<req>")]
+fn new_res(
+    conn: DbConn,
+    thread_id: usize,
+    req: Form<NewResRequest>,
+    addr: SocketAddr,
+) -> Json<DebugResponse> {
+    let mut builder = NewResBuilder::new(&addr.ip());
+    let new_res = builder
+        .thread_id(thread_id as i32)
+        .user_name(&req.user_name)
         .email(&req.email)
         .body(&req.body)
         .finalize();
 
-    return Json(res.to_debug_response());
+    let res = ResRepository::post(&conn, &new_res);
+    Json(res.to_debug_response())
 }
 
 fn main() {
-    rocket::ignite().mount("/", routes![index, post]).launch();
+    rocket::ignite()
+        .attach(DbConn::fairing())
+        .mount("/", routes![index, new_res, new_thread])
+        .launch();
 }

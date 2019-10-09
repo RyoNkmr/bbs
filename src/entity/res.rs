@@ -2,25 +2,34 @@ extern crate crypto;
 
 use self::crypto::digest::Digest;
 use self::crypto::sha1::Sha1;
+use crate::entity::thread::Thread;
+use crate::schema::reses;
 use base64::encode;
-use chrono::{DateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
+#[derive(Identifiable, Queryable, Deserialize, Associations)]
+#[belongs_to(Thread)]
+#[table_name = "reses"]
 pub struct Res {
-    pub username: String,
-    pub userid: String,
+    pub id: i32,
+    pub thread_id: i32,
+    pub user_name: String,
+    pub user_id: String,
     pub email: String,
     pub body: String,
-    pub ip: IpAddr,
-    pub created_at: DateTime<Utc>,
+    pub ip: String,
+    pub created_at: NaiveDateTime,
 }
 
 impl Res {
     pub fn to_debug_response(&self) -> DebugResponse {
         DebugResponse {
-            username: self.username.clone(),
-            userid: self.userid.clone(),
+            id: self.id,
+            user_name: self.user_name.clone(),
+            user_id: self.user_id.clone(),
             email: self.email.clone(),
             body: self.body.clone(),
             ip: self.ip.to_string(),
@@ -29,66 +38,102 @@ impl Res {
     }
 }
 
-pub struct ResBuilder {
-    username: String,
-    userid: String,
+pub struct NewResBuilder {
+    thread_id: i32,
+    user_name: String,
+    user_id: String,
     email: String,
     body: String,
     ip: IpAddr,
-    created_at: DateTime<Utc>,
+    ip_string: String,
+    created_at: NaiveDateTime,
 }
 
-fn generate_userid(source: &str) -> String {
-    let mut hasher = Sha1::new();
-    hasher.input_str(source);
-    return encode(&hasher.result_str())[..8].to_string();
-}
+impl NewResBuilder {
+    pub fn new(ip: &IpAddr) -> NewResBuilder {
+        let user_id_source = Utc::today().to_string() + &ip.to_string();
 
-impl ResBuilder {
-    pub fn new(ip: IpAddr) -> ResBuilder {
-        let userid_source = Utc::today().to_string() + &ip.to_string();
-
-        return ResBuilder {
+        return NewResBuilder {
+            thread_id: 0,
             body: String::new(),
-            created_at: Utc::now(),
+            created_at: Utc::now().naive_utc(),
             email: String::new(),
-            ip,
-            username: String::new(),
-            userid: generate_userid(&userid_source),
+            ip: ip.clone(),
+            ip_string: ip.to_string(),
+            user_name: String::new(),
+            user_id: NewResBuilder::generate_user_id(&user_id_source),
         };
     }
 
-    pub fn username(&mut self, username: &str) -> &mut ResBuilder {
-        self.username = username.to_string();
+    pub fn user_name(&mut self, user_name: &str) -> &mut NewResBuilder {
+        self.user_name = user_name.to_string();
         self
     }
 
-    pub fn email(&mut self, email: &str) -> &mut ResBuilder {
+    pub fn email(&mut self, email: &str) -> &mut NewResBuilder {
         self.email = email.to_string();
         self
     }
 
-    pub fn body(&mut self, body: &str) -> &mut ResBuilder {
+    pub fn body(&mut self, body: &str) -> &mut NewResBuilder {
         self.body = body.to_string();
         self
     }
 
-    pub fn finalize(&self) -> Res {
-        Res {
-            username: self.username.clone(),
-            userid: self.userid.clone(),
-            email: self.email.clone(),
-            body: self.body.clone(),
-            ip: self.ip.clone(),
-            created_at: self.created_at.clone(),
+    pub fn thread_id(&mut self, thread_id: i32) -> &mut NewResBuilder {
+        self.thread_id = thread_id;
+        self
+    }
+
+    pub fn finalize(&self) -> NewRes {
+        NewRes {
+            thread_id: self.thread_id,
+            user_name: &self.user_name,
+            user_id: &self.user_id,
+            email: &self.email,
+            body: &self.body,
+            ip: &self.ip_string,
         }
+    }
+
+    fn generate_user_id(source: &str) -> String {
+        let mut hasher = Sha1::new();
+        hasher.input_str(source);
+        return encode(&hasher.result_str())[..8].to_string();
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Insertable, Debug)]
+#[table_name = "reses"]
+pub struct NewRes<'a> {
+    pub thread_id: i32,
+    pub user_name: &'a str,
+    pub user_id: &'a str,
+    pub email: &'a str,
+    pub body: &'a str,
+    pub ip: &'a str,
+}
+
+pub struct ResRepository {}
+
+impl ResRepository {
+    pub fn post(conn: &SqliteConnection, res: &NewRes) -> Res {
+        use crate::schema::reses::dsl::{id, reses};
+
+        diesel::insert_into(reses)
+            .values(res)
+            .execute(conn)
+            .expect("Error on saving new res");
+
+        reses.order(id.desc()).first(conn).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct DebugResponse {
-    pub username: String,
-    pub userid: String,
+    pub id: i32,
+    pub user_name: String,
+    pub user_id: String,
     pub email: String,
     pub body: String,
     pub created_at: String,
