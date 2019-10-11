@@ -98,19 +98,9 @@ impl ThreadRepository {
         let all_reses_count = reses
             .select(sql("count(thread_id) as count, thread_id"))
             .filter(thread_id.eq_any(thread_ids))
-            .filter(sql("TRUE GROUP BY thread_id"))
+            .filter(sql("TRUE GROUP BY thread_id")) // workaround https://github.com/diesel-rs/diesel/issues/210
             .load::<ResCount>(conn)
             .expect("Error on getting reses of latest threads");
-
-        let query = reses
-            .select(sql::<ResCount>("count(thread_id) as count, thread_id"))
-            .filter(thread_id.eq_any(all_threads.iter().map(|t| t.id).collect::<Vec<i32>>()))
-            .filter(sql("TRUE GROUP BY thread_id"));
-
-        println!(
-            "{:?}",
-            diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-        );
 
         let mut count_map = HashMap::new();
         for res_count in all_reses_count.into_iter() {
