@@ -10,7 +10,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
-#[derive(Identifiable, Queryable, Deserialize, Associations)]
+#[derive(Debug, Identifiable, Queryable, Deserialize, Associations)]
 #[belongs_to(Thread)]
 #[table_name = "reses"]
 pub struct Res {
@@ -22,6 +22,14 @@ pub struct Res {
     pub body: String,
     pub ip: String,
     pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Queryable, Deserialize, Associations)]
+#[belongs_to(Thread)]
+#[table_name = "reses"]
+pub struct ResCount {
+    pub count: i64,
+    pub thread_id: i32,
 }
 
 impl Res {

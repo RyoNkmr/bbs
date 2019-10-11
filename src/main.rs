@@ -14,13 +14,24 @@ use rocket_contrib::json::Json;
 use std::net::SocketAddr;
 
 use bbs::entity::{
-    DebugResponse, DebugThreadResponse, NewResBuilder, ResRepository, ThreadBuilder,
+    DebugNewThreadResponse, DebugResponse, DebugThreadResponseWithCount, NewResBuilder,
+    ResRepository, ThreadBuilder, ThreadRepository,
 };
 use bbs::DbConn;
 
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"
+}
+
+#[get("/threads")]
+fn all_threads(conn: DbConn) -> Json<Vec<DebugThreadResponseWithCount>> {
+    let threads = ThreadRepository::get_all_threads_with_count(&conn);
+    let mut ret: Vec<DebugThreadResponseWithCount> = Vec::with_capacity(threads.len());
+    for (thread, count) in threads.into_iter() {
+        ret.push(thread.to_debug_response_with_count(count));
+    }
+    Json(ret)
 }
 
 #[derive(FromForm)]
@@ -43,7 +54,7 @@ fn new_thread(
     conn: DbConn,
     req: Form<NewThreadRequest>,
     addr: SocketAddr,
-) -> Json<DebugThreadResponse> {
+) -> Json<DebugNewThreadResponse> {
     let mut res_builder = NewResBuilder::new(&addr.ip());
     res_builder
         .user_name(&req.user_name)
@@ -74,6 +85,6 @@ fn new_res(
 fn main() {
     rocket::ignite()
         .attach(DbConn::fairing())
-        .mount("/", routes![index, new_res, new_thread])
+        .mount("/", routes![index, all_threads, new_res, new_thread])
         .launch();
 }
