@@ -1,26 +1,29 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BBS</title>
-  </head>
-  <body>
-    <h1>ねこまちBBS</h1>
+{% extends "base" %}
 
-    <section>
-      <h2>スレッド一覧</h2>
-      <ul>
-        {% for thread in threads %}
-        <li><a href="{{thread.url}}">{{thread.title}}</a></li>
-        {% endfor %}
-      </ul>
-    </section>
+{% block title %}
+<title>ねこまちBBS</title>
+{% endblock title %}
 
-    <section>
-      {% for thread in top_threads %}
-      <li><a href="{{thread.url}}">{{thread.title}}</a></li>
-      {% endfor %}
-    </section>
-  </body>
-</html>
+{% block content %}
+<h1>ねこまちBBS</h1>
+
+<section>
+  <h2>スレッド一覧</h2>
+  <ul>
+    {% for th in top_threads %}
+    <li><a href="/{{th.thread.slug}}">{{loop.index}} {{th.thread.title}}({{th.reses | length}})</a></li>
+    {% endfor %}
+  </ul>
+</section>
+
+{% for th in top_threads %}
+<section>
+  <h2><a href="/{{th.thread.slug}}">{{th.thread.title}}</a></h2>
+  {% for res in th.reses %}
+  <section class="thread__res">
+    <p>{{res.body}}</p>
+  </section>
+  {% endfor %}
+</section>
+{% endfor %}
+{% endblock content %}

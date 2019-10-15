@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Identifiable, Queryable, Deserialize)]
+#[derive(Debug, Identifiable, Queryable, Deserialize, Serialize)]
 #[primary_key(slug)]
 #[table_name = "threads"]
 pub struct Thread {
@@ -85,6 +85,12 @@ pub struct NewThread<'a> {
     pub slug: &'a str,
 }
 
+#[derive(Serialize, Debug)]
+pub struct ThreadDetail {
+    pub thread: Thread,
+    pub reses: Vec<Res>,
+}
+
 pub struct ThreadRepository {}
 
 impl ThreadRepository {
@@ -127,7 +133,7 @@ impl ThreadRepository {
         ret
     }
 
-    pub fn get_thread_with_res(conn: &SqliteConnection, slug: String) -> (Thread, Vec<Res>) {
+    pub fn get_thread_with_res(conn: &SqliteConnection, slug: String) -> ThreadDetail {
         use crate::schema::reses::dsl::created_at as res_cat;
         use crate::schema::threads::dsl::{slug as thread_slug, threads};
 
@@ -141,10 +147,13 @@ impl ThreadRepository {
             .load::<Res>(conn)
             .expect("Error on getting reses of the thread");
 
-        (thread, all_reses)
+        ThreadDetail {
+            thread,
+            reses: all_reses,
+        }
     }
 
-    pub fn get_latest_threads_with_res(conn: &SqliteConnection) -> Vec<(Thread, Vec<Res>)> {
+    pub fn get_latest_threads_with_res(conn: &SqliteConnection) -> Vec<ThreadDetail> {
         use crate::schema::reses::dsl::created_at as res_cat;
         use crate::schema::threads::dsl::{threads, updated_at as thread_update};
 
@@ -163,7 +172,8 @@ impl ThreadRepository {
         latest_threads
             .into_iter()
             .zip(all_reses)
-            .collect::<Vec<_>>()
+            .map(|(thread, reses)| ThreadDetail { thread, reses })
+            .collect()
     }
 
     pub fn post<'a>(conn: &SqliteConnection, thread: &NewThread<'a>) -> Thread {

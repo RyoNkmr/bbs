@@ -10,7 +10,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
-#[derive(Debug, Identifiable, Queryable, Deserialize, Associations)]
+#[derive(Debug, Identifiable, Queryable, Serialize, Deserialize, Associations)]
 #[belongs_to(Thread, foreign_key = "thread_slug")]
 #[table_name = "reses"]
 pub struct Res {

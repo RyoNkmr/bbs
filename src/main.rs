@@ -8,19 +8,30 @@ extern crate bbs;
 
 use rocket::request::Form;
 use rocket_contrib::json::Json;
+use rocket_contrib::templates::Template;
 use serde::Serialize;
 use std::net::SocketAddr;
 
 use bbs::entity::{
     DebugNewThreadResponse, DebugResponse, DebugThreadResponse, DebugThreadResponseWithCount,
-    NewResBuilder, ResRepository, ThreadBuilder, ThreadRepository,
+    NewResBuilder, Res, ResRepository, ThreadBuilder, ThreadDetail, ThreadRepository,
 };
 use bbs::form::UserName;
 use bbs::DbConn;
 
+/*
+   index
+*/
+#[derive(Serialize)]
+struct IndexContext {
+    top_threads: Vec<ThreadDetail>,
+}
+
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index(conn: DbConn) -> Template {
+    let top_threads = ThreadRepository::get_latest_threads_with_res(&conn);
+    let context = IndexContext { top_threads };
+    Template::render("index", &context)
 }
 
 #[get("/threads")]
@@ -41,10 +52,11 @@ struct ThreadResponse {
 
 #[get("/thread/<slug>")]
 fn thread(conn: DbConn, slug: String) -> Json<ThreadResponse> {
-    let (thread, reses) = ThreadRepository::get_thread_with_res(&conn, slug);
+    let th = ThreadRepository::get_thread_with_res(&conn, slug);
     Json(ThreadResponse {
-        thread: thread.to_debug_response(),
-        reses: reses
+        thread: th.thread.to_debug_response(),
+        reses: th
+            .reses
             .into_iter()
             .map(|r| r.to_debug_response())
             .collect::<Vec<DebugResponse>>(),
@@ -107,6 +119,7 @@ fn new_res(
 fn main() {
     rocket::ignite()
         .attach(DbConn::fairing())
+        .attach(Template::fairing())
         .mount(
             "/",
             routes![index, all_threads, new_res, thread, new_thread],
