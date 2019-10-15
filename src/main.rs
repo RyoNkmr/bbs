@@ -13,8 +13,8 @@ use serde::Serialize;
 use std::net::SocketAddr;
 
 use bbs::entity::{
-    DebugNewThreadResponse, DebugResponse, DebugThreadResponse, DebugThreadResponseWithCount,
-    NewResBuilder, Res, ResRepository, ThreadBuilder, ThreadDetail, ThreadRepository,
+    DebugNewThreadResponse, DebugResponse, DebugThreadResponseWithCount, NewResBuilder,
+    ResRepository, Thread, ThreadBuilder, ThreadDetail, ThreadRepository,
 };
 use bbs::form::UserName;
 use bbs::DbConn;
@@ -44,23 +44,10 @@ fn all_threads(conn: DbConn) -> Json<Vec<DebugThreadResponseWithCount>> {
     Json(ret)
 }
 
-#[derive(Debug, Serialize)]
-struct ThreadResponse {
-    thread: DebugThreadResponse,
-    reses: Vec<DebugResponse>,
-}
-
 #[get("/thread/<slug>")]
-fn thread(conn: DbConn, slug: String) -> Json<ThreadResponse> {
-    let th = ThreadRepository::get_thread_with_res(&conn, slug);
-    Json(ThreadResponse {
-        thread: th.thread.to_debug_response(),
-        reses: th
-            .reses
-            .into_iter()
-            .map(|r| r.to_debug_response())
-            .collect::<Vec<DebugResponse>>(),
-    })
+fn thread(conn: DbConn, slug: String) -> Template {
+    let thread = ThreadRepository::get_thread_with_res(&conn, slug);
+    Template::render("thread", &thread)
 }
 
 #[derive(FromForm)]

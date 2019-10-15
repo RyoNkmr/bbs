@@ -54,6 +54,10 @@
   margin: 0;
 }
 
+.res__body {
+  white-space: pre-wrap;
+}
+
 .res__body:nth-child(n+2) {
   margin-top: 4px;
 }
@@ -70,6 +74,11 @@
   color: #3a3;
   font-weight: bold;
 }
+
+.res__name--has-mail {
+  color: #33f;
+}
+
 {% endblock style %}
 
 {% block content %}
@@ -90,9 +99,16 @@
     {% for res in th.reses %}
     <section class="thread__res res">
       <header class="res__header">
-          {{loop.index}} <span class="res__name">{{ res.user_name }}</span> : {{ res.created_at | date(format="%Y/%m/%d(%a) %T") }} ID:{{ res.user_id }}
+          {{loop.index}}
+          {% if res.email != "" %}
+          <a class="res__name res__name--has-mail" href="mailto:{{
+             res.email }}">{{ res.user_name }}</a>
+          {% else %}
+            <span class="res__name">{{ res.user_name }}</span>
+          {% endif %}
+          : {{ res.created_at | date(format="%Y/%m/%d(%a) %T") }} ID:{{ res.user_id }}
       </header>
-      <p class="res__body">{{res.body}}</p>
+      <p class="res__body">{{ res.body }}</p>
     </section>
     {% endfor %}
     <footer class="thread__footer">
@@ -109,7 +125,7 @@
         <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
       </form>
       <ul class="">
-        <li><a href="/{{th.thread.slug}}">全部読む</a></li>
+        <li><a href="/thread/{{th.thread.slug}}">全部読む</a></li>
       </ul>
     </footer>
   </div>
