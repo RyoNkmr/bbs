@@ -5,7 +5,7 @@
 .thread-list {
   padding: 8px;
   background-color: #8fa;
-  border: 1px solid #333;
+  border: 1px solid #bbb;
 }
 .thread-list__list {
   margin: 0;
@@ -16,17 +16,59 @@
   list-style: none;
   border: 1px solid #333;
 }
+
 .thread-titles__item {
   display: inline;
 }
+
 .thread-titles__item:nth-child(n+2) {
   margin-left: 1em;
 }
 
-.form {
+.thread {
+  padding: 8px;
+  border: 1px solid #bbb;
+  background-color: #eee;
 }
+
+.thread:nth-child(n+2) {
+  margin-top: 16px;
+}
+
+.thread__inner {
+  padding: 24px 16px;
+  border: 1px solid #333;
+}
+
+.thread__title {
+  margin: 0;
+  font-size: 32px;
+  color: #f33;
+}
+
+.res:nth-child(n+2) {
+  margin-top: 20px;
+}
+
+.res__header {
+  margin: 0;
+}
+
+.res__body:nth-child(n+2) {
+  margin-top: 4px;
+}
+
+.thread__footer:nth-child(n+2) {
+  margin-top: 32px;
+}
+
 .form__body {
   margin: 8px 0;
+}
+
+.res__name {
+  color: #3a3;
+  font-weight: bold;
 }
 {% endblock style %}
 
@@ -43,31 +85,34 @@
 
 {% for th in top_threads %}
 <section class="thread">
-  <h2 class="thread__title">
-    <a href="/{{th.thread.slug}}">{{th.thread.title}}</a>
-  </h2>
-  {% for res in th.reses %}
-  <section class="thread__res">
-    <p>{{res.body}}</p>
-  </section>
-  {% endfor %}
-  <footer class="thread__footer">
-    <form action="/thread/{{th.thread.slug}}" method="POST" class="form">
-      <div>
-        <button>書き込む</button>
-        <label>
-          名前: <input type="text" name="user_name" />
-        </label>
-        <label>
-          E-mail: <input type="text" name="email" />
-        </label>
-      </div>
-      <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
-    </form>
-    <ul class="">
-      <li><a href="/{{th.thread.slug}}">全部読む</a></li>
-    </ul>
-  </footer>
+  <div class="thread__inner">
+    <h2 class="thread__title">{{th.thread.title}}</h2>
+    {% for res in th.reses %}
+    <section class="thread__res res">
+      <header class="res__header">
+          {{loop.index}} <span class="res__name">{{ res.user_name }}</span> : {{ res.created_at | date(format="%Y/%m/%d(%a) %T") }} ID:{{ res.user_id }}
+      </header>
+      <p class="res__body">{{res.body}}</p>
+    </section>
+    {% endfor %}
+    <footer class="thread__footer">
+      <form action="/thread/{{th.thread.slug}}" method="POST" class="form">
+        <div>
+          <button>書き込む</button>
+          <label>
+            名前: <input type="text" name="user_name" />
+          </label>
+          <label>
+            E-mail: <input type="text" name="email" />
+          </label>
+        </div>
+        <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
+      </form>
+      <ul class="">
+        <li><a href="/{{th.thread.slug}}">全部読む</a></li>
+      </ul>
+    </footer>
+  </div>
 </section>
 {% endfor %}
 {% endblock content %}
