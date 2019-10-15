@@ -2,20 +2,18 @@
 
 #[macro_use]
 extern crate rocket;
-#[macro_use]
 extern crate rocket_contrib;
 
 extern crate bbs;
 
-use chrono::{DateTime, Utc};
 use rocket::request::Form;
-use rocket::Request;
 use rocket_contrib::json::Json;
+use serde::Serialize;
 use std::net::SocketAddr;
 
 use bbs::entity::{
-    DebugNewThreadResponse, DebugResponse, DebugThreadResponseWithCount, NewResBuilder,
-    ResRepository, ThreadBuilder, ThreadRepository,
+    DebugNewThreadResponse, DebugResponse, DebugThreadResponse, DebugThreadResponseWithCount,
+    NewResBuilder, ResRepository, ThreadBuilder, ThreadRepository,
 };
 use bbs::DbConn;
 
@@ -34,6 +32,24 @@ fn all_threads(conn: DbConn) -> Json<Vec<DebugThreadResponseWithCount>> {
     Json(ret)
 }
 
+#[derive(Debug, Serialize)]
+struct ThreadResponse {
+    thread: DebugThreadResponse,
+    reses: Vec<DebugResponse>,
+}
+
+#[get("/thread/<slug>")]
+fn thread(conn: DbConn, slug: String) -> Json<ThreadResponse> {
+    let (thread, reses) = ThreadRepository::get_thread_with_res(&conn, slug);
+    Json(ThreadResponse {
+        thread: thread.to_debug_response(),
+        reses: reses
+            .into_iter()
+            .map(|r| r.to_debug_response())
+            .collect::<Vec<DebugResponse>>(),
+    })
+}
+
 #[derive(FromForm)]
 struct NewThreadRequest {
     pub title: String,
@@ -49,7 +65,7 @@ struct NewResRequest {
     pub body: String,
 }
 
-#[post("/thread", data = "<req>")]
+#[post("/threads", data = "<req>")]
 fn new_thread(
     conn: DbConn,
     req: Form<NewThreadRequest>,
@@ -60,19 +76,24 @@ fn new_thread(
         .user_name(&req.user_name)
         .email(&req.email)
         .body(&req.body);
-    Json(ThreadBuilder::new(res_builder).save(&conn))
+
+    Json(
+        ThreadBuilder::new(res_builder)
+            .title(&req.title)
+            .save(&conn),
+    )
 }
 
-#[post("/thread/<thread_id>", data = "<req>")]
+#[post("/thread/<slug>", data = "<req>")]
 fn new_res(
     conn: DbConn,
-    thread_id: usize,
+    slug: String,
     req: Form<NewResRequest>,
     addr: SocketAddr,
 ) -> Json<DebugResponse> {
     let mut builder = NewResBuilder::new(&addr.ip());
     let new_res = builder
-        .thread_id(thread_id as i32)
+        .thread_slug(&slug)
         .user_name(&req.user_name)
         .email(&req.email)
         .body(&req.body)
@@ -85,6 +106,9 @@ fn new_res(
 fn main() {
     rocket::ignite()
         .attach(DbConn::fairing())
-        .mount("/", routes![index, all_threads, new_res, new_thread])
+        .mount(
+            "/",
+            routes![index, all_threads, new_res, thread, new_thread],
+        )
         .launch();
 }

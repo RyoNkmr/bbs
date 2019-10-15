@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Identifiable, Queryable, Deserialize)]
+#[primary_key(slug)]
 #[table_name = "threads"]
 pub struct Thread {
-    pub id: i32,
     pub slug: String,
     pub title: String,
     pub updated_at: NaiveDateTime,
@@ -18,9 +18,16 @@ pub struct Thread {
 }
 
 impl Thread {
+    pub fn to_debug_response(&self) -> DebugThreadResponse {
+        DebugThreadResponse {
+            slug: self.slug.clone(),
+            title: self.title.clone(),
+            updated_at: self.updated_at,
+            created_at: self.created_at,
+        }
+    }
     pub fn to_debug_response_with_count(&self, count: i64) -> DebugThreadResponseWithCount {
         DebugThreadResponseWithCount {
-            id: self.id,
             slug: self.slug.clone(),
             title: self.title.clone(),
             updated_at: self.updated_at,
@@ -49,20 +56,18 @@ impl<'a> ThreadBuilder {
     }
 
     pub fn save(&'a mut self, conn: &SqliteConnection) -> DebugNewThreadResponse {
-        let timestamp_string = Utc::now().timestamp().to_string();
+        let timestamp_string = Utc::now().timestamp_millis().to_string();
         let new_thread = NewThread {
             title: &self.title,
             slug: &timestamp_string,
         };
         let thread = ThreadRepository::post(conn, &new_thread);
-        let new_res = self.new_res_builder.thread_id(thread.id).finalize();
+        let new_res = self.new_res_builder.thread_slug(&thread.slug).finalize();
         let res = ResRepository::post(conn, &new_res);
 
         DebugNewThreadResponse {
             title: thread.title,
             slug: thread.slug,
-            thread_id: res.thread_id,
-            id: res.id,
             user_name: res.user_name,
             user_id: res.user_id,
             email: res.email,
@@ -84,32 +89,38 @@ pub struct ThreadRepository {}
 
 impl ThreadRepository {
     pub fn get_all_threads_with_count(conn: &SqliteConnection) -> Vec<(Thread, i64)> {
-        use crate::schema::reses::dsl::{reses, thread_id};
+        use crate::schema::reses::dsl::{reses, thread_slug};
         use crate::schema::threads::dsl::{threads, updated_at as thread_update};
         use diesel::dsl::sql;
+        use diesel::types::{BigInt, Text};
 
         let all_threads = threads
             .order(thread_update.desc())
             .load::<Thread>(conn)
             .expect("Error on getting all threads");
 
-        let thread_ids = all_threads.iter().map(|t| t.id).collect::<Vec<i32>>();
+        let thread_slugs = all_threads
+            .iter()
+            .map(|t| t.slug.as_str())
+            .collect::<Vec<&str>>();
 
         let all_reses_count = reses
-            .select(sql("count(thread_id) as count, thread_id"))
-            .filter(thread_id.eq_any(thread_ids))
-            .filter(sql("TRUE GROUP BY thread_id")) // workaround https://github.com/diesel-rs/diesel/issues/210
-            .load::<ResCount>(conn)
+            .select(sql::<(Text, BigInt)>(
+                "thread_slug, count(thread_slug) as count",
+            ))
+            .filter(thread_slug.eq_any(thread_slugs))
+            .filter(sql("TRUE GROUP BY thread_slug")) // workaround https://github.com/diesel-rs/diesel/issues/210
+            .load::<(String, i64)>(conn)
             .expect("Error on getting reses of latest threads");
 
         let mut count_map = HashMap::new();
-        for res_count in all_reses_count.into_iter() {
-            count_map.insert(res_count.thread_id, res_count.count);
+        for (slug, count) in all_reses_count.into_iter() {
+            count_map.insert(slug, count);
         }
 
         let mut ret = Vec::with_capacity(all_threads.len());
         for thread in all_threads.into_iter() {
-            let count = count_map.get(&thread.id).unwrap_or(&0);
+            let count = count_map.get(&thread.slug).unwrap_or(&0);
             ret.push((thread, *count));
         }
 
@@ -174,8 +185,6 @@ impl ThreadRepository {
 pub struct DebugNewThreadResponse {
     pub title: String,
     pub slug: String,
-    pub thread_id: i32,
-    pub id: i32,
     pub user_name: String,
     pub user_id: String,
     pub email: String,
@@ -185,8 +194,15 @@ pub struct DebugNewThreadResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct DebugThreadResponse {
+    pub slug: String,
+    pub title: String,
+    pub updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Serialize)]
 pub struct DebugThreadResponseWithCount {
-    pub id: i32,
     pub slug: String,
     pub title: String,
     pub updated_at: NaiveDateTime,

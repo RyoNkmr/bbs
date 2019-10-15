@@ -11,11 +11,11 @@ use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
 #[derive(Debug, Identifiable, Queryable, Deserialize, Associations)]
-#[belongs_to(Thread)]
+#[belongs_to(Thread, foreign_key = "thread_slug")]
 #[table_name = "reses"]
 pub struct Res {
     pub id: i32,
-    pub thread_id: i32,
+    pub thread_slug: String,
     pub user_name: String,
     pub user_id: String,
     pub email: String,
@@ -25,11 +25,11 @@ pub struct Res {
 }
 
 #[derive(Debug, Queryable, Deserialize, Associations)]
-#[belongs_to(Thread)]
+#[belongs_to(Thread, foreign_key = "thread_slug")]
 #[table_name = "reses"]
 pub struct ResCount {
     pub count: i64,
-    pub thread_id: i32,
+    pub thread_slug: String,
 }
 
 impl Res {
@@ -47,7 +47,7 @@ impl Res {
 }
 
 pub struct NewResBuilder {
-    thread_id: i32,
+    thread_slug: String,
     user_name: String,
     user_id: String,
     email: String,
@@ -62,7 +62,7 @@ impl NewResBuilder {
         let user_id_source = Utc::today().to_string() + &ip.to_string();
 
         return NewResBuilder {
-            thread_id: 0,
+            thread_slug: String::new(),
             body: String::new(),
             created_at: Utc::now().naive_utc(),
             email: String::new(),
@@ -88,14 +88,14 @@ impl NewResBuilder {
         self
     }
 
-    pub fn thread_id(&mut self, thread_id: i32) -> &mut NewResBuilder {
-        self.thread_id = thread_id;
+    pub fn thread_slug(&mut self, thread_slug: &str) -> &mut NewResBuilder {
+        self.thread_slug = thread_slug.to_string();
         self
     }
 
     pub fn finalize(&self) -> NewRes {
         NewRes {
-            thread_id: self.thread_id,
+            thread_slug: &self.thread_slug,
             user_name: &self.user_name,
             user_id: &self.user_id,
             email: &self.email,
@@ -114,7 +114,7 @@ impl NewResBuilder {
 #[derive(Insertable, Debug)]
 #[table_name = "reses"]
 pub struct NewRes<'a> {
-    pub thread_id: i32,
+    pub thread_slug: &'a str,
     pub user_name: &'a str,
     pub user_id: &'a str,
     pub email: &'a str,

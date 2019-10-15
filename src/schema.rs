@@ -1,7 +1,7 @@
 table! {
     reses (id) {
         id -> Integer,
-        thread_id -> Integer,
+        thread_slug -> Text,
         user_name -> Text,
         user_id -> Text,
         email -> Text,
@@ -12,8 +12,7 @@ table! {
 }
 
 table! {
-    threads (id) {
-        id -> Integer,
+    threads (slug) {
         slug -> Text,
         title -> Text,
         created_at -> Timestamp,
@@ -21,7 +20,7 @@ table! {
     }
 }
 
-joinable!(reses -> threads (thread_id));
+joinable!(reses -> threads (thread_slug));
 
 allow_tables_to_appear_in_same_query!(
     reses,
