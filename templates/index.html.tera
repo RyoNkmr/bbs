@@ -1,29 +1,73 @@
 {% extends "base" %}
 
-{% block title %}
-<title>ねこまちBBS</title>
-{% endblock title %}
+{% block title %}ねこまちBBS{% endblock title %}
+{% block style %}
+.thread-list {
+  padding: 8px;
+  background-color: #8fa;
+  border: 1px solid #333;
+}
+.thread-list__list {
+  margin: 0;
+  padding: 8px 16px;
+}
+
+.thread-titles {
+  list-style: none;
+  border: 1px solid #333;
+}
+.thread-titles__item {
+  display: inline;
+}
+.thread-titles__item:nth-child(n+2) {
+  margin-left: 1em;
+}
+
+.form {
+}
+.form__body {
+  margin: 8px 0;
+}
+{% endblock style %}
 
 {% block content %}
 <h1>ねこまちBBS</h1>
 
-<section>
-  <h2>スレッド一覧</h2>
-  <ul>
+<section class="thread-list">
+  <ul class="thread-list__list thread-titles">
     {% for th in top_threads %}
-    <li><a href="/{{th.thread.slug}}">{{loop.index}} {{th.thread.title}}({{th.reses | length}})</a></li>
+    <li class="thread-titles__item"><a href="/{{th.thread.slug}}">{{loop.index}}: {{th.thread.title}} ({{th.reses | length}})</a></li>
     {% endfor %}
   </ul>
 </section>
 
 {% for th in top_threads %}
-<section>
-  <h2><a href="/{{th.thread.slug}}">{{th.thread.title}}</a></h2>
+<section class="thread">
+  <h2 class="thread__title">
+    <a href="/{{th.thread.slug}}">{{th.thread.title}}</a>
+  </h2>
   {% for res in th.reses %}
   <section class="thread__res">
     <p>{{res.body}}</p>
   </section>
   {% endfor %}
+  <footer class="thread__footer">
+    <form action="/thread/{{th.thread.slug}}" method="POST" class="form">
+      <div>
+        <button>書き込む</button>
+        <label>
+          名前: <input type="text" name="user_name" />
+        </label>
+        <label>
+          E-mail: <input type="text" name="email" />
+        </label>
+      </div>
+      <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
+    </form>
+    <ul class="">
+      <li><a href="/{{th.thread.slug}}">全部読む</a></li>
+    </ul>
+  </footer>
 </section>
 {% endfor %}
 {% endblock content %}

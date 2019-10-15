@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% block title %}{% endblock title %}
+    <title>{% block title %}{% endblock title %}</title>
+    <style>{% block style %}{% endblock style %}</style>
   </head>
   <body>
     {% block content %}{% endblock content %}
