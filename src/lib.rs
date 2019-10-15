@@ -5,6 +5,7 @@ extern crate rocket_contrib;
 extern crate dotenv;
 
 pub mod entity;
+pub mod form;
 pub mod schema;
 
 // use diesel::prelude::*;

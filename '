@@ -15,7 +15,6 @@ use bbs::entity::{
     DebugNewThreadResponse, DebugResponse, DebugThreadResponse, DebugThreadResponseWithCount,
     NewResBuilder, ResRepository, ThreadBuilder, ThreadRepository,
 };
-use bbs::form::UserName;
 use bbs::DbConn;
 
 #[get("/")]
@@ -54,14 +53,14 @@ fn thread(conn: DbConn, slug: String) -> Json<ThreadResponse> {
 #[derive(FromForm)]
 struct NewThreadRequest {
     pub title: String,
-    pub user_name: UserName,
+    pub user_name: String,
     pub email: String,
     pub body: String,
 }
 
 #[derive(FromForm)]
 struct NewResRequest {
-    pub user_name: UserName,
+    pub user_name: String,
     pub email: String,
     pub body: String,
 }
@@ -74,7 +73,7 @@ fn new_thread(
 ) -> Json<DebugNewThreadResponse> {
     let mut res_builder = NewResBuilder::new(&addr.ip());
     res_builder
-        .user_name(&req.user_name.as_str())
+        .user_name(&req.user_name.unwrap_or("名無しさん"))
         .email(&req.email)
         .body(&req.body);
 
@@ -95,7 +94,7 @@ fn new_res(
     let mut builder = NewResBuilder::new(&addr.ip());
     let new_res = builder
         .thread_slug(&slug)
-        .user_name(&req.user_name.as_str())
+        .user_name(&req.user_name)
         .email(&req.email)
         .body(&req.body)
         .finalize();

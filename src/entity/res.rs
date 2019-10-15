@@ -122,11 +122,27 @@ pub struct NewRes<'a> {
     pub ip: &'a str,
 }
 
+impl<'a> NewRes<'a> {
+    pub fn is_age(&'a self) -> bool {
+        self.email != "sage"
+    }
+}
+
 pub struct ResRepository {}
 
 impl ResRepository {
     pub fn post(conn: &SqliteConnection, res: &NewRes) -> Res {
         use crate::schema::reses::dsl::{id, reses};
+        use crate::schema::threads::dsl::{slug, threads, updated_at};
+        use diesel::expression::dsl::now;
+
+        if res.is_age() {
+            let thread = threads.filter(slug.eq(res.thread_slug));
+            diesel::update(thread)
+                .set(updated_at.eq(now))
+                .execute(conn)
+                .expect("Error while age");
+        }
 
         diesel::insert_into(reses)
             .values(res)
