@@ -14,7 +14,7 @@ use std::net::SocketAddr;
 
 use bbs::entity::{
     DebugNewThreadResponse, DebugResponse, DebugThreadResponseWithCount, NewResBuilder,
-    ResRepository, Thread, ThreadBuilder, ThreadDetail, ThreadRepository,
+    ResRepository, ThreadBuilder, ThreadDetail, ThreadRepository,
 };
 use bbs::form::UserName;
 use bbs::DbConn;

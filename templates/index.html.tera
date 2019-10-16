@@ -87,13 +87,13 @@
 <section class="thread-list">
   <ul class="thread-list__list thread-titles">
     {% for th in top_threads %}
-    <li class="thread-titles__item"><a href="/{{th.thread.slug}}">{{loop.index}}: {{th.thread.title}} ({{th.reses | length}})</a></li>
+    <li class="thread-titles__item"><a href="#{{th.thread.slug}}">{{loop.index}}: {{th.thread.title}} ({{th.reses | length}})</a></li>
     {% endfor %}
   </ul>
 </section>
 
 {% for th in top_threads %}
-<section class="thread">
+<section class="thread" id="{{th.thread.slug}}">
   <div class="thread__inner">
     <h2 class="thread__title">{{th.thread.title}}</h2>
     {% for res in th.reses %}
