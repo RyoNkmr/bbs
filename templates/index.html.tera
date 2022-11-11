@@ -84,51 +84,34 @@
 {% block content %}
 <h1>ねこまちBBS</h1>
 
-<section class="thread-list">
-  <ul class="thread-list__list thread-titles">
-    {% for th in top_threads %}
-    <li class="thread-titles__item"><a href="#{{th.thread.slug}}">{{loop.index}}: {{th.thread.title}} ({{th.reses | length}})</a></li>
-    {% endfor %}
-  </ul>
-</section>
+<hr />
 
-{% for th in top_threads %}
-<section class="thread" id="{{th.thread.slug}}">
-  <div class="thread__inner">
-    <h2 class="thread__title">{{th.thread.title}}</h2>
-    {% for res in th.reses %}
-    <section class="thread__res res">
-      <header class="res__header">
-          {{loop.index}}
-          {% if res.email != "" %}
-          <a class="res__name res__name--has-mail" href="mailto:{{
-             res.email }}">{{ res.user_name }}</a>
-          {% else %}
-            <span class="res__name">{{ res.user_name }}</span>
-          {% endif %}
-          : {{ res.created_at | date(format="%Y/%m/%d(%a) %T") }} ID:{{ res.user_id }}
-      </header>
-      <p class="res__body">{{ res.body }}</p>
-    </section>
-    {% endfor %}
-    <footer class="thread__footer">
-      <form action="/thread/{{th.thread.slug}}" method="POST" class="form">
-        <div>
-          <button>書き込む</button>
-          <label>
-            名前: <input type="text" name="user_name" />
-          </label>
-          <label>
-            E-mail: <input type="text" name="email" />
-          </label>
-        </div>
-        <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
-      </form>
-      <ul class="">
-        <li><a href="/thread/{{th.thread.slug}}">全部読む</a></li>
-      </ul>
-    </footer>
+<form action="/" method="POST" class="form">
+  <div>
+    <button>書き込む</button>
+    <label>
+      名前: <input type="text" name="user_name" />
+    </label>
+    <label>
+      E-mail: <input type="text" name="email" />
+    </label>
   </div>
+  <textarea rows="5" cols="64" name="body" class="form__body"></textarea>
+</form>
+
+{% for res in responses %}
+<section class="res">
+  <header class="res__header">
+      {{res.id}}
+      {% if res.email != "" %}
+      <a class="res__name res__name--has-mail" href="mailto:{{
+         res.email }}">{{ res.user_name }}</a>
+      {% else %}
+        <span class="res__name">{{ res.user_name }}</span>
+      {% endif %}
+      : {{ res.created_at | date(format="%Y/%m/%d(%a) %T") }} ID:{{ res.user_id }}
+  </header>
+  <p class="res__body">{{ res.body }}</p>
 </section>
 {% endfor %}
 {% endblock content %}

@@ -24,11 +24,12 @@ struct IndexContext {
     responses: Vec<Response>,
 }
 
-const LIMIT: i32 = 20;
+// TODO: 投げられるようにする
+const LIMIT: i64 = 20;
 
 #[get("/?<after>")]
 fn index(conn: DbConn, after: Option<i32>) -> Template {
-    let responses = ResponseRepository::select(&conn, 10, after);
+    let responses = ResponseRepository::select(&conn, LIMIT, after);
     let context = IndexContext { responses };
     Template::render("index", &context)
 }
@@ -40,12 +41,8 @@ struct NewResponseRequest {
     pub body: String,
 }
 
-#[post("/response", data = "<req>")]
-fn create_response(
-    conn: DbConn,
-    req: Form<NewResponseRequest>,
-    addr: SocketAddr,
-) -> Json<DebugResponse> {
+#[post("/", data = "<req>")]
+fn create_response(conn: DbConn, req: Form<NewResponseRequest>, addr: SocketAddr) -> Template {
     let mut builder = NewResponseBuilder::new(&addr.ip());
     let new_res = builder
         .user_name(&req.user_name.as_str())
@@ -53,8 +50,8 @@ fn create_response(
         .body(&req.body)
         .finalize();
 
-    let res = ResponseRepository::create(&conn, &new_res);
-    Json(res.to_debug_response())
+    ResponseRepository::create(&conn, &new_res);
+    index(conn, None)
 }
 
 fn main() {
