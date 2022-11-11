@@ -2,20 +2,17 @@ extern crate crypto;
 
 use self::crypto::digest::Digest;
 use self::crypto::sha1::Sha1;
-use crate::entity::thread::Thread;
-use crate::schema::reses;
+use crate::schema::responses;
 use base64::encode;
 use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
-#[derive(Debug, Identifiable, Queryable, Serialize, Deserialize, Associations)]
-#[belongs_to(Thread, foreign_key = "thread_slug")]
-#[table_name = "reses"]
-pub struct Res {
+#[derive(Debug, Identifiable, Queryable, Serialize, Deserialize)]
+#[table_name = "responses"]
+pub struct Response {
     pub id: i32,
-    pub thread_slug: String,
     pub user_name: String,
     pub user_id: String,
     pub email: String,
@@ -24,15 +21,7 @@ pub struct Res {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Queryable, Deserialize, Associations)]
-#[belongs_to(Thread, foreign_key = "thread_slug")]
-#[table_name = "reses"]
-pub struct ResCount {
-    pub count: i64,
-    pub thread_slug: String,
-}
-
-impl Res {
+impl Response {
     pub fn to_debug_response(&self) -> DebugResponse {
         DebugResponse {
             id: self.id,
@@ -46,8 +35,7 @@ impl Res {
     }
 }
 
-pub struct NewResBuilder {
-    thread_slug: String,
+pub struct NewResponseBuilder {
     user_name: String,
     user_id: String,
     email: String,
@@ -57,45 +45,38 @@ pub struct NewResBuilder {
     created_at: NaiveDateTime,
 }
 
-impl NewResBuilder {
-    pub fn new(ip: &IpAddr) -> NewResBuilder {
+impl NewResponseBuilder {
+    pub fn new(ip: &IpAddr) -> NewResponseBuilder {
         let user_id_source = Utc::today().to_string() + &ip.to_string();
 
-        return NewResBuilder {
-            thread_slug: String::new(),
+        return NewResponseBuilder {
             body: String::new(),
             created_at: Utc::now().naive_utc(),
             email: String::new(),
             ip: ip.clone(),
             ip_string: ip.to_string(),
             user_name: String::new(),
-            user_id: NewResBuilder::generate_user_id(&user_id_source),
+            user_id: NewResponseBuilder::generate_user_id(&user_id_source),
         };
     }
 
-    pub fn user_name(&mut self, user_name: &str) -> &mut NewResBuilder {
+    pub fn user_name(&mut self, user_name: &str) -> &mut NewResponseBuilder {
         self.user_name = user_name.to_string();
         self
     }
 
-    pub fn email(&mut self, email: &str) -> &mut NewResBuilder {
+    pub fn email(&mut self, email: &str) -> &mut NewResponseBuilder {
         self.email = email.to_string();
         self
     }
 
-    pub fn body(&mut self, body: &str) -> &mut NewResBuilder {
+    pub fn body(&mut self, body: &str) -> &mut NewResponseBuilder {
         self.body = body.to_string();
         self
     }
 
-    pub fn thread_slug(&mut self, thread_slug: &str) -> &mut NewResBuilder {
-        self.thread_slug = thread_slug.to_string();
-        self
-    }
-
-    pub fn finalize(&self) -> NewRes {
-        NewRes {
-            thread_slug: &self.thread_slug,
+    pub fn finalize(&self) -> NewResponse {
+        NewResponse {
             user_name: &self.user_name,
             user_id: &self.user_id,
             email: &self.email,
@@ -112,9 +93,8 @@ impl NewResBuilder {
 }
 
 #[derive(Insertable, Debug)]
-#[table_name = "reses"]
-pub struct NewRes<'a> {
-    pub thread_slug: &'a str,
+#[table_name = "responses"]
+pub struct NewResponse<'a> {
     pub user_name: &'a str,
     pub user_id: &'a str,
     pub email: &'a str,
@@ -122,34 +102,36 @@ pub struct NewRes<'a> {
     pub ip: &'a str,
 }
 
-impl<'a> NewRes<'a> {
-    pub fn is_age(&'a self) -> bool {
-        self.email != "sage"
-    }
-}
+pub struct ResponseRepository {}
 
-pub struct ResRepository {}
+impl ResponseRepository {
+    pub fn create(conn: &SqliteConnection, res: &NewResponse) -> Response {
+        use crate::schema::responses::dsl::{id, responses};
 
-impl ResRepository {
-    pub fn post(conn: &SqliteConnection, res: &NewRes) -> Res {
-        use crate::schema::reses::dsl::{id, reses};
-        use crate::schema::threads::dsl::{slug, threads, updated_at};
-        use diesel::expression::dsl::now;
-
-        if res.is_age() {
-            let thread = threads.filter(slug.eq(res.thread_slug));
-            diesel::update(thread)
-                .set(updated_at.eq(now))
-                .execute(conn)
-                .expect("Error while age");
-        }
-
-        diesel::insert_into(reses)
+        diesel::insert_into(responses)
             .values(res)
             .execute(conn)
             .expect("Error on saving new res");
 
-        reses.order(id.desc()).first(conn).unwrap()
+        responses.order(id.desc()).first(conn).unwrap()
+    }
+
+    pub fn select(conn: &SqliteConnection, limit: i64, after_id: Option<i32>) -> Vec<Response> {
+        use crate::schema::responses::dsl::{id, responses};
+
+        let result = match after_id {
+            Some(ai) => responses
+                .order(id.desc())
+                .filter(id.lt(ai))
+                .limit(limit)
+                .load::<Response>(conn),
+            None => responses
+                .order(id.desc())
+                .limit(limit)
+                .load::<Response>(conn),
+        };
+
+        result.expect("failed to select responses")
     }
 }
 

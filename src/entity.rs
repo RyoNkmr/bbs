@@ -1,5 +1,3 @@
-pub mod res;
-pub mod thread;
+pub mod response;
 
-pub use res::*;
-pub use thread::*;
+pub use response::*;

@@ -7,6 +7,5 @@ CREATE TABLE responses (
   email VARCHAR NOT NULL,
   body TEXT NOT NULL,
   ip VARCHAR NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now', 'localtime')),
-  FOREIGN KEY (thread_slug) REFERENCES threads(slug)
+  created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now', 'localtime'))
 );
