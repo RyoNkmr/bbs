@@ -1,8 +1,7 @@
 -- Your SQL goes here
 
-CREATE TABLE reses (
+CREATE TABLE responses (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  thread_slug VARCHAR NOT NULL,
   user_name VARCHAR NOT NULL,
   user_id VARCHAR NOT NULL,
   email VARCHAR NOT NULL,

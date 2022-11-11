@@ -11,7 +11,7 @@ $ cargo run
 ## Setup
 
 - install diesel cli: `cargo install diesel_cli`
-- use diesel cli to migrate database: `diesel migration run`
+- use diesel cli to migrate database(SQLite): `diesel migration run --database-url ./<filepath>`
 
 ＿人人人人人人人人人人人人人人人人人＿  
 ＞　おおっと スレッド作る UI がない　＜  
